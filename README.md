@@ -68,7 +68,9 @@ You are welcome to contribute to this project by following the steps describes i
 
 ## How to cite
 [![status](https://joss.theoj.org/papers/39ed869b636795151756cc57c7e625ad/status.svg)](https://joss.theoj.org/papers/39ed869b636795151756cc57c7e625ad)</br>
-Please refer to the [documentation cite page](https://pysciencemode.readthedocs.io/en/latest/cite.html) to cite pyScienceMode.
+
+Co et al., (2025). pyScienceMode: an Open-Source Python Package to control electro-stimulator through the Hasomed’s
+science mode protocol. Journal of Open Source Software, 10(111), 8259, https://doi.org/10.21105/joss.08259
 
 ## Acknowledgements
 The software development was supported by Ingénierie de technologies interactives en réadaptation [INTER #160 OptiStim](https://regroupementinter.com/fr/mandat/160-optistim/).
