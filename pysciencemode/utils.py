@@ -121,6 +121,87 @@ def check_list_channel_order(list_channels):
         number_previous_channel = list_channels[i].get_no_channel()
 
 
+def check_stimulation_parameter_list(
+    list_channels: list, parameter_list: dict, parameter_name: str
+) -> int:
+    """
+    Checks if a stimulation parameter is given for each channel and if all the lists have the same length.
+    Used for the pulse by pulse stimulation of the P24.
+
+    Parameters
+    ----------
+    list_channels: list[Channel]
+        Contains the channels that will be stimulated.
+    parameter_list: dict
+        Contains the parameter sent for each pulse. The key is the channel number and the value is the list of the
+        parameter values sent one pulse after the other.
+    parameter_name: str
+        Name of the checked parameter. Only used to build the error messages.
+
+    Returns
+    -------
+    nb_pulses: int
+        Number of pulses which will be sent.
+    """
+    if not isinstance(parameter_list, dict):
+        raise TypeError(
+            "Error : the %s list must be a dict, %s given."
+            % (parameter_name, type(parameter_list).__name__)
+        )
+
+    for channel in list_channels:
+        if channel.get_no_channel() not in parameter_list:
+            raise ValueError(
+                "Error : no %s given for channel no%s."
+                % (parameter_name, channel.get_no_channel())
+            )
+
+    nb_pulses = [
+        len(parameter_list[channel.get_no_channel()]) for channel in list_channels
+    ]
+    if len(set(nb_pulses)) != 1:
+        raise ValueError(
+            "Error : all the %s lists must have the same length, given lengths : %s."
+            % (parameter_name, nb_pulses)
+        )
+    if nb_pulses[0] == 0:
+        raise ValueError(
+            "Error : please provide at least one %s for stimulation." % parameter_name
+        )
+
+    return nb_pulses[0]
+
+
+def check_pulse_interval_list(pulse_interval_list: list, nb_pulses: int):
+    """
+    Checks if an interval is given for each pulse and if the intervals are within limits.
+    Used for the pulse by pulse stimulation of the P24.
+
+    Parameters
+    ----------
+    pulse_interval_list: list
+        Contains the interval in ms between a pulse and the next one.
+    nb_pulses: int
+        Number of pulses which will be sent.
+    """
+    if not isinstance(pulse_interval_list, list):
+        raise TypeError(
+            "Error : the pulse interval list must be a list, %s given."
+            % type(pulse_interval_list).__name__
+        )
+    if len(pulse_interval_list) != nb_pulses:
+        raise ValueError(
+            "Error : one pulse interval must be given for each pulse, %s pulse intervals given for %s pulses."
+            % (len(pulse_interval_list), nb_pulses)
+        )
+    for pulse_interval in pulse_interval_list:
+        if not 0.5 <= pulse_interval <= 16383:
+            raise ValueError(
+                "Error : pulse interval min = 0.5ms, max = 16383ms, value given %sms."
+                % pulse_interval
+            )
+
+
 def calc_electrode_number(
     list_channels: list, enable_low_frequency: bool = False
 ) -> int:

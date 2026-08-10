@@ -1,16 +1,20 @@
 import time
+from typing import Callable
+
 from .utils import (
     check_unique_channel,
     calc_electrode_number,
     generic_error_check,
     check_list_channel_order,
+    check_stimulation_parameter_list,
+    check_pulse_interval_list,
 )
 from .sciencemode import RehastimGeneric
 try:
     from sciencemode import sciencemode
 except ImportError:
     pass
-from .enums import Device, HighVoltage, StimStatus
+from .enums import Device, HighVoltage, Modes, StimStatus
 from .channel import Point, Channel
 
 
@@ -546,6 +550,115 @@ class P24(RehastimGeneric):
                 self._get_last_ack()
                 self.check_stimulation_errors()
                 time.sleep(0.005)
+
+        self.pause_stimulation()
+        self.stimulation_started = True
+
+    def start_pulse_by_pulse_stimulation(
+        self,
+        upd_list_channels: list,
+        pulse_width_list: dict,
+        amplitude_list: dict = None,
+        pulse_interval_list: list = None,
+        stop_condition: Callable = None,
+    ):
+        """
+        Start the mid level stimulation on the device, sending the stimulation parameters pulse by pulse.
+
+        Contrary to start_stimulation, the stimulation is not held for a fixed duration with a fixed set of
+        parameters. The parameters are updated between each pulse and the stimulation stops when all the given
+        parameters have been sent, or as soon as the stop_condition is met.
+
+        Parameters
+        ----------
+        upd_list_channels : list
+            Channels to stimulate. Each channel must use a Single, Doublet or Triplet mode.
+        pulse_width_list : dict
+            Pulse width sent for each pulse. The key is the channel number and the value is the list of the pulse
+            widths in μs sent one pulse after the other.
+        amplitude_list : dict
+            Amplitude sent for each pulse. The key is the channel number and the value is the list of the amplitudes
+            in mA sent one pulse after the other. If None, the amplitude of each channel is left unchanged.
+        pulse_interval_list : list
+            Interval in ms between a pulse and the next one. One interval must be given for each pulse and it is
+            shared by all the channels, as they are all updated at the same time. It sets the period of every channel
+            and paces the stimulation, so it can not be shorter than the communication time with the device.
+            If None, the frequency of each channel is left unchanged and the parameters are sent as soon as the
+            device has answered.
+        stop_condition : callable
+            Function called before each pulse. The stimulation stops as soon as it returns True.
+        """
+
+        if upd_list_channels is not None:
+            new_electrode_number = calc_electrode_number(upd_list_channels)
+            if new_electrode_number != self.electrode_number:
+                raise RuntimeError(
+                    "Error update: all channels have not been initialised"
+                )
+
+        check_list_channel_order(upd_list_channels)
+
+        #  The pulse is regenerated between each pulse, so each channel needs a mode to shape it.
+        for channel in upd_list_channels:
+            if channel.get_mode() == Modes.NONE.value:
+                raise ValueError(
+                    "No mode provided for channel {}. "
+                    "Please provide a Single, Doublet or Triplet mode to stimulate pulse by pulse. "
+                    "Specific stimulation points are not supported by this method.".format(
+                        channel._no_channel
+                    )
+                )
+
+        nb_pulses = check_stimulation_parameter_list(
+            upd_list_channels, pulse_width_list, "pulse width"
+        )
+        if amplitude_list is not None:
+            nb_amplitudes = check_stimulation_parameter_list(
+                upd_list_channels, amplitude_list, "amplitude"
+            )
+            if nb_amplitudes != nb_pulses:
+                raise ValueError(
+                    "Error : the pulse width and amplitude lists must have the same length, "
+                    "given lengths : %s and %s." % (nb_pulses, nb_amplitudes)
+                )
+        if pulse_interval_list is not None:
+            check_pulse_interval_list(pulse_interval_list, nb_pulses)
+
+        if stop_condition is not None and not callable(stop_condition):
+            raise TypeError("Please provide a callable for stop_condition")
+
+        self.list_channels = upd_list_channels
+        self.ml_update.packet_number = self.get_next_packet_number()
+
+        for pulse_index in range(nb_pulses):
+            if stop_condition is not None and stop_condition():
+                break
+            tic = time.time()
+
+            for channel in upd_list_channels:
+                if amplitude_list is not None:
+                    channel.set_amplitude(
+                        amplitude_list[channel.get_no_channel()][pulse_index]
+                    )
+                if pulse_interval_list is not None:
+                    channel.set_frequency(1000.0 / pulse_interval_list[pulse_index])
+                channel.set_pulse_width(
+                    pulse_width_list[channel.get_no_channel()][pulse_index]
+                )
+
+            self._send_stimulation_update()
+            self._get_current_data()
+            self._get_last_ack()
+            self.check_stimulation_errors()
+
+            if pulse_interval_list is None:
+                time.sleep(0.005)
+            else:
+                #  Wait for the remaining time of the pulse interval, the device stimulates in the meantime.
+                pulse_duration = time.time() - tic
+                time.sleep(
+                    max(pulse_interval_list[pulse_index] / 1000 - pulse_duration, 0)
+                )
 
         self.pause_stimulation()
         self.stimulation_started = True
