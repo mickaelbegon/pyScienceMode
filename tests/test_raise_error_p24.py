@@ -182,6 +182,159 @@ def test_point_list_empty():
     stimulator.close_port()
 
 
+def test_missing_pulse_width_list_error():
+    """
+    Test if no pulse width list is provided for one of the stimulated channels, raise an error.
+    Connect the electrode to a stim box or to the skin and start the test.
+    """
+    stimulator = Stp24(port="COM4", show_log="Status")
+    list_channels = []
+    channel_number = 1
+    channel_1 = Channel(
+        mode=Modes.SINGLE,
+        no_channel=channel_number,
+        amplitude=20,
+        pulse_width=300,
+        frequency=10,
+        device_type=Device.P24,
+    )
+
+    list_channels.append(channel_1)
+    stimulator.init_stimulation(list_channels=list_channels)
+    with pytest.raises(
+        ValueError,
+        match=f"Error : no pulse width given for channel no{channel_number}.",
+    ):
+        stimulator.start_pulse_by_pulse_stimulation(
+            upd_list_channels=list_channels, pulse_width_list={}
+        )
+    stimulator.close_port()
+
+
+def test_pulse_width_list_length_error():
+    """
+    Test if the pulse width lists given for each channel do not have the same length, raise an error.
+    Connect the electrodes to a stim box or to the skin and start the test.
+    """
+    stimulator = Stp24(port="COM4", show_log="Status")
+    list_channels = []
+    for channel_number in [1, 2]:
+        list_channels.append(
+            Channel(
+                mode=Modes.SINGLE,
+                no_channel=channel_number,
+                amplitude=20,
+                pulse_width=300,
+                frequency=10,
+                device_type=Device.P24,
+            )
+        )
+
+    stimulator.init_stimulation(list_channels=list_channels)
+    with pytest.raises(
+        ValueError,
+        match="Error : all the pulse width lists must have the same length, given lengths : ",
+    ):
+        stimulator.start_pulse_by_pulse_stimulation(
+            upd_list_channels=list_channels,
+            pulse_width_list={1: [300, 300, 300], 2: [300, 300]},
+        )
+    stimulator.close_port()
+
+
+def test_pulse_interval_list_length_error():
+    """
+    Test if the pulse interval list does not provide one interval per pulse, raise an error.
+    Connect the electrode to a stim box or to the skin and start the test.
+    """
+    stimulator = Stp24(port="COM4", show_log="Status")
+    list_channels = []
+    channel_number = 1
+    channel_1 = Channel(
+        mode=Modes.SINGLE,
+        no_channel=channel_number,
+        amplitude=20,
+        pulse_width=300,
+        frequency=10,
+        device_type=Device.P24,
+    )
+
+    list_channels.append(channel_1)
+    stimulator.init_stimulation(list_channels=list_channels)
+    with pytest.raises(
+        ValueError,
+        match="Error : one pulse interval must be given for each pulse, 2 pulse intervals given for 3 pulses.",
+    ):
+        stimulator.start_pulse_by_pulse_stimulation(
+            upd_list_channels=list_channels,
+            pulse_width_list={channel_number: [300, 300, 300]},
+            pulse_interval_list=[20, 20],
+        )
+    stimulator.close_port()
+
+
+@pytest.mark.parametrize("pulse_interval", [0, 20000])
+def test_pulse_interval_value_error(pulse_interval):
+    """
+    Test if a pulse interval is out of limits, raise an error.
+    Connect the electrode to a stim box or to the skin and start the test.
+    """
+    stimulator = Stp24(port="COM4", show_log="Status")
+    list_channels = []
+    channel_number = 1
+    channel_1 = Channel(
+        mode=Modes.SINGLE,
+        no_channel=channel_number,
+        amplitude=20,
+        pulse_width=300,
+        frequency=10,
+        device_type=Device.P24,
+    )
+
+    list_channels.append(channel_1)
+    stimulator.init_stimulation(list_channels=list_channels)
+    with pytest.raises(
+        ValueError,
+        match=f"Error : pulse interval min = 0.5ms, max = 16383ms, value given {pulse_interval}ms.",
+    ):
+        stimulator.start_pulse_by_pulse_stimulation(
+            upd_list_channels=list_channels,
+            pulse_width_list={channel_number: [300]},
+            pulse_interval_list=[pulse_interval],
+        )
+    stimulator.close_port()
+
+
+def test_no_mode_pulse_by_pulse_error():
+    """
+    Test if a channel without mode is stimulated pulse by pulse, raise an error.
+    Connect the electrode to a stim box or to the skin and start the test.
+    """
+    stimulator = Stp24(port="COM4", show_log="Status")
+    list_channels = []
+    channel_number = 1
+    channel_1 = Channel(
+        no_channel=channel_number, frequency=10, device_type=Device.P24
+    )
+
+    list_channels.append(channel_1)
+    channel_1.add_point(350, 20)
+    channel_1.add_point(350, -20)
+    stimulator.init_stimulation(list_channels=list_channels)
+    with pytest.raises(
+        ValueError,
+        match="No mode provided for channel {}. "
+        "Please provide a Single, Doublet or Triplet mode to stimulate pulse by pulse. "
+        "Specific stimulation points are not supported by this method.".format(
+            channel_1._no_channel
+        ),
+    ):
+        stimulator.start_pulse_by_pulse_stimulation(
+            upd_list_channels=list_channels, pulse_width_list={channel_number: [350]}
+        )
+    stimulator.close_port()
+
+
 def test_no_point_instance_error():
     """
     Test if the point list contains a non point instance.

@@ -2,6 +2,8 @@
 Here is an example of how to use the P24 device.
 
 ```
+import time
+
 from pysciencemode import Channel, Point, Device, Modes
 from pysciencemode import P24 as St
 
@@ -124,6 +126,58 @@ point6 = channel_1.add_point(500, -15)
 Restart the stimulation with the new point configuration for 5s.
 """
 stimulator.update_stimulation(upd_list_channels=list_channels, stimulation_duration=5)
+
+"""
+The stimulation can also be piloted pulse by pulse, instead of holding a fixed set of parameters during a given
+duration. One pulse width, one amplitude and one interval before the next pulse are given for each pulse.
+The pulse is regenerated between each pulse, so every channel needs a Single, Doublet or Triplet mode.
+"""
+channel_1.set_mode(Modes.SINGLE)
+
+nb_pulses = 50
+pulse_width_list = {
+    channel.get_no_channel(): [100 + 8 * i for i in range(nb_pulses)]
+    for channel in list_channels
+}
+amplitude_list = {
+    channel.get_no_channel(): [10 + 0.2 * i for i in range(nb_pulses)]
+    for channel in list_channels
+}
+pulse_interval_list = [20 for _ in range(nb_pulses)]  # 50 Hz, 1s of stimulation
+
+stimulator.start_pulse_by_pulse_stimulation(
+    upd_list_channels=list_channels,
+    pulse_width_list=pulse_width_list,
+    amplitude_list=amplitude_list,
+    pulse_interval_list=pulse_interval_list,
+)
+
+"""
+Only the pulse width list is mandatory, the other lists can be set to None. The corresponding parameter is then not
+updated between the pulses and stays constant during the whole pulse by pulse series, at the value currently set on
+each channel. Here only the pulse width changes from one pulse to the other, the amplitude stays the last one sent
+above and the pulses are spaced by the frequency of each channel.
+"""
+stimulator.start_pulse_by_pulse_stimulation(
+    upd_list_channels=list_channels,
+    pulse_width_list=pulse_width_list,
+    amplitude_list=None,
+    pulse_interval_list=None,
+)
+
+"""
+As the stimulation does not last for a fixed duration, it can be stopped on a condition instead of on a timer.
+The stop condition is called before each pulse and stops the stimulation as soon as it returns True. It can be used
+to stop the stimulation on a sensor value, a keyboard input or, as here, on an elapsed time.
+"""
+start_time = time.time()
+
+stimulator.start_pulse_by_pulse_stimulation(
+    upd_list_channels=list_channels,
+    pulse_width_list=pulse_width_list,
+    pulse_interval_list=pulse_interval_list,
+    stop_condition=lambda: time.time() - start_time > 0.5,
+)
 
 """
 Stop the stimulation and leave the mid level but it does not disconnect the Pc and the P24.
