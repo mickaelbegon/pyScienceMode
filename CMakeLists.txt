@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.26)
 project(pysciencemode LANGUAGES C)
 
 # Builds the `sciencemode._sciencemode` cffi extension (API mode) on top of a
@@ -13,7 +13,10 @@ if(NOT EXISTS "${SMPT_LIB}/src/general/smpt_client.c")
     "Run: git submodule update --init --recursive")
 endif()
 
-find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+# SKBUILD_SABI_COMPONENT is "Development.SABIModule" when scikit-build-core
+# builds an abi3 wheel (wheel.py-api in pyproject.toml), empty otherwise
+# (e.g. free-threaded CPython, which has no stable ABI).
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module ${SKBUILD_SABI_COMPONENT})
 
 # --- Static ScienceMode4 library (general + low-level + mid-level) ----------
 # We define our own target instead of add_subdirectory() so that the upstream
@@ -63,7 +66,16 @@ add_custom_command(
   COMMENT "Generating cffi C source for sciencemode._sciencemode"
   VERBATIM)
 
-python_add_library(_sciencemode MODULE WITH_SOABI "${FFI_C}")
+# cffi's generated code targets the CPython limited API by default, so we build
+# a single abi3 extension (one wheel per platform for all CPython >= 3.10).
+if(SKBUILD_SABI_VERSION)
+  python_add_library(_sciencemode MODULE WITH_SOABI USE_SABI ${SKBUILD_SABI_VERSION} "${FFI_C}")
+else()
+  python_add_library(_sciencemode MODULE WITH_SOABI "${FFI_C}")
+  # Otherwise cffi would still define Py_LIMITED_API (and, with MSVC, try to
+  # link python3.lib) while we link against the version-specific library.
+  target_compile_definitions(_sciencemode PRIVATE _CFFI_NO_LIMITED_API)
+endif()
 target_link_libraries(_sciencemode PRIVATE smpt)
 
 install(TARGETS _sciencemode LIBRARY DESTINATION sciencemode)

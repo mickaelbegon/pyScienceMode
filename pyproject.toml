@@ -47,12 +47,14 @@ p24 = ["cffi>=1.17"]
 
 [tool.scikit-build]
 minimum-version = "build-system.requires"
-cmake.version = ">=3.18"
+cmake.version = ">=3.26"
 build-dir = "build/{wheel_tag}"
 # `src/sciencemode` is installed as the top-level `sciencemode` package (same
 # layout as the former `sciencemode_cffi` wheel); the compiled
 # `_sciencemode` module is added to it by CMake (see CMakeLists.txt).
 wheel.packages = ["pysciencemode", "src/sciencemode"]
+# Stable ABI (abi3) wheel: one wheel per platform works on CPython >= 3.10.
+wheel.py-api = "cp310"
 # The sdist must contain the C sources of the submodule (checked out).
 sdist.exclude = [
   ".github",
