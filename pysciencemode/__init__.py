@@ -7,3 +7,13 @@ from .p24_continuous import StimulationEvent
 from . import acks
 from .channel import Channel, Point
 from .enums import Rehastim2Commands, P24Commands, Modes, Device
+from .closed_loop import (
+    ClosedLoopController,
+    ChannelLimits,
+    ChannelState,
+    LoopStats,
+    SensorSource,
+    CallableSensor,
+    ThreadedSensor,
+    BiosigliveSensor,
+)
