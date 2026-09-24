@@ -7,13 +7,17 @@ easily extensible as new hardware emerges. Please have a look to the documentati
 [pyScienceMode](https://pysciencemode.readthedocs.io/en/latest/index.html).
 
 ## How to install
-These are the different ways to install pyScienceMode for the Rehastim2 control.
-To control the P24, please follow the `Additional installation step for the P24 stimulator` below, as it requires an additional wheel.
+pyScienceMode controls both the Rehastim2 and the P24. The low-level `sciencemode` module needed by the P24
+(cffi bindings to HASOMED's [ScienceMode4 C library](https://github.com/ScienceMode/ScienceMode4_c_library))
+is now built and shipped with pyScienceMode: no additional wheel is needed.
 
 ### Installing from PyPI
 ```bash
 pip install pysciencemode
 ```
+Prebuilt wheels are provided for CPython 3.10+ on Windows (x86_64), Linux (manylinux x86_64 and aarch64)
+and macOS (Intel and Apple Silicon). The `p24` extra (`pip install "pysciencemode[p24]"`) is still accepted
+for backward compatibility.
 
 ### Installing from Anaconda
 ```bash
@@ -21,23 +25,16 @@ conda install -c conda-forge pysciencemode
 ```
 
 ### Installing from source
+Clone the repository with its submodule, then install (a C compiler is required):
 ```bash
+git clone --recursive https://github.com/s2mLab/pyScienceMode.git
+cd pyScienceMode
 pip install .
 ```
 Please refer to the [documentation](https://pysciencemode.readthedocs.io/en/latest/install.html) for more details.
 
-### Additional installation step for the P24 stimulator
-Install the `p24` extra (`pip install "pysciencemode[p24]"`, or `pip install ".[p24]"` from source), which pulls `cffi`.
-The low-level `sciencemode` wrapper must then be installed separately: it is not on PyPI and the provided
-wheel is currently only available for Windows / Python 3.10.
-pysciencemode is not compatible with macOS and Linux for the control of the stimulator P24.
-As soon as the P24 wrapper will be compatible with macOS and Linux, we will update the documentation.
-
-<strong>For Python 3.10 on Windows:</strong> navigate to the folder where the file sciencemode_cffi-1.0.0-cp310-cp310-win_amd64.whl is located and run the following command
-```bash
-pip install sciencemode_cffi-1.0.0-cp310-cp310-win_amd64.whl
-```
-<strong>For other Python version:</strong> build your own wheel from https://github.com/ScienceMode/ScienceMode4_python_wrapper and pip install it in your environment.
+If you previously installed the `sciencemode_cffi-1.0.0-cp310-cp310-win_amd64.whl` wheel, uninstall it first
+(`pip uninstall sciencemode_cffi`): it provides the same `sciencemode` package.
 
 ## How to use
 
