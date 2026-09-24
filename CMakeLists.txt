@@ -79,7 +79,5 @@ endif()
 target_link_libraries(_sciencemode PRIVATE smpt)
 
 install(TARGETS _sciencemode LIBRARY DESTINATION sciencemode)
-# The bundled C library is MPL-2.0 OR LGPL-3.0-or-later: ship its licenses
-# next to the compiled code.
-install(FILES "${SMPT_ROOT}/LICENSE" DESTINATION sciencemode RENAME LICENSE.ScienceMode4.MPL-2.0)
-install(FILES "${SMPT_ROOT}/LICENSE_LGPL_3_0" DESTINATION sciencemode RENAME LICENSE.ScienceMode4.LGPL-3.0)
+# The licenses of the bundled C library (MPL-2.0 OR LGPL-3.0-or-later) are
+# shipped in the wheel's .dist-info/licenses via `license-files` (pyproject).

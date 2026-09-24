@@ -55,11 +55,16 @@ build-dir = "build/{wheel_tag}"
 wheel.packages = ["pysciencemode", "src/sciencemode"]
 # Stable ABI (abi3) wheel: one wheel per platform works on CPython >= 3.10.
 wheel.py-api = "cp310"
-# The sdist must contain the C sources of the submodule (checked out).
+# The sdist must contain the C sources of the submodule (checked out); docs
+# (large images) and examples are left out.
 sdist.exclude = [
   ".github",
+  ".readthedocs.yaml",
   "*.whl",
-  "docs/_build",
+  "__pycache__",
+  "docs",
+  "examples",
+  "Examples",
   "extern/ScienceMode4_c_library/.github",
   "extern/ScienceMode4_c_library/ScienceMode_Library_Test",
   "extern/ScienceMode4_c_library/*.pro",

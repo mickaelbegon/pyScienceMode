@@ -8,6 +8,6 @@ that ``from sciencemode import sciencemode`` keeps working::
     sciencemode.lib.smpt_open_serial_port(...)
     sciencemode.ffi.new("Smpt_device*")
 
-The bundled C library is licensed under MPL-2.0 OR LGPL-3.0-or-later (see the
-``LICENSE.ScienceMode4.*`` files in this package).
+The bundled C library is licensed under MPL-2.0 OR LGPL-3.0-or-later (license
+texts in the ``.dist-info/licenses`` directory of the installed distribution).
 """
