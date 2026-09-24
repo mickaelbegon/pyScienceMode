@@ -28,6 +28,33 @@ SOURCE = """
 #include "smpt_ll_client.h"
 #include "smpt_ml_definitions.h"
 #include "smpt_ml_client.h"
+
+#if !defined(_WIN32)
+#include <stdlib.h>
+#include <string.h>
+/* Workaround for an upstream bug (ScienceMode4_c_library @ 0cb1201): on Linux
+ * and macOS, smpt_check_serial_port_internal() is implemented with a
+ * `Smpt_device *` parameter while its prototype, and smpt_check_serial_port(),
+ * pass the port *name*: the library then writes into memory past the Python
+ * string (heap corruption, segfault on macOS). Re-implement the check on top of
+ * the public open/close functions, with a heap-allocated device. */
+static bool pysciencemode_check_serial_port(const char *const device_name)
+{
+    bool ok;
+    Smpt_device *device;
+    if (device_name == NULL || strlen(device_name) >= Smpt_Length_Serial_Port_Chars)
+        return false;
+    device = (Smpt_device *)calloc(1, sizeof(Smpt_device));
+    if (device == NULL)
+        return false;
+    ok = smpt_open_serial_port(device, device_name);
+    if (ok)
+        smpt_close_serial_port(device);
+    free(device);
+    return ok;
+}
+#define smpt_check_serial_port pysciencemode_check_serial_port
+#endif
 """
 
 
